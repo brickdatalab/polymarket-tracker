@@ -5,10 +5,10 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Polymarket Tracker · @0x8dxd',
+  title: 'doug_plean_tracker',
   description: 'Live P&L tracker — $17k proportional stake in @0x8dxd\'s Polymarket portfolio.',
   openGraph: {
-    title: 'Polymarket Tracker · @0x8dxd',
+    title: 'doug_plean_tracker',
     description: 'Live P&L tracker for a proportional stake in @0x8dxd\'s Polymarket portfolio.',
   },
 };

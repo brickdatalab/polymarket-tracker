@@ -57,16 +57,8 @@ export default function Dashboard() {
       <header className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-xl font-semibold text-zinc-100">
-            Polymarket Tracker
+            doug_plean_tracker
           </h1>
-          <a
-            href="https://polymarket.com/@0x8dxd"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
-          >
-            @0x8dxd
-          </a>
         </div>
 
         <div className="flex items-center gap-2 text-xs text-zinc-500">
