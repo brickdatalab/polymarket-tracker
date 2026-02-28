@@ -22,13 +22,17 @@ function deduplicateByDay(snapshots: Snapshot[]): Snapshot[] {
 }
 
 function filterSnapshots(snapshots: Snapshot[], range: TimeRange): Snapshot[] {
+  if (range === '1d') {
+    // Show raw minute-level data for intraday view
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 1);
+    return snapshots.filter(s => new Date(s.captured_at) >= cutoff);
+  }
   const deduped = deduplicateByDay(snapshots);
   if (range === 'all') return deduped;
-  const now = new Date();
   const cutoff = new Date();
-  if (range === '1m') cutoff.setDate(now.getDate() - 30);
-  if (range === '1w') cutoff.setDate(now.getDate() - 7);
-  if (range === '1d') cutoff.setDate(now.getDate() - 1);
+  if (range === '1m') cutoff.setDate(cutoff.getDate() - 30);
+  if (range === '1w') cutoff.setDate(cutoff.getDate() - 7);
   return deduped.filter(s => new Date(s.captured_at) >= cutoff);
 }
 
