@@ -3,7 +3,7 @@
 import type { Snapshot } from '@/lib/types';
 
 interface Props {
-  snapshot: Snapshot | null;
+  snapshots: Snapshot[];
   loading: boolean;
 }
 
@@ -17,14 +17,15 @@ function fmt(n: number, opts?: Intl.NumberFormatOptions) {
   }).format(n);
 }
 
-function fmtPct(pnl: number, invested: number) {
-  const pct = (pnl / invested) * 100;
+function fmtPct(change: number, base: number) {
+  if (base === 0) return '+0.0%';
+  const pct = (change / base) * 100;
   return `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`;
 }
 
-const INITIAL_INVESTMENT = 17_000;
+const INITIAL_INVESTMENT = 17_544.83;
 
-export default function PnLHero({ snapshot, loading }: Props) {
+export default function PnLHero({ snapshots, loading }: Props) {
   if (loading) {
     return (
       <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-6 animate-pulse">
@@ -35,7 +36,7 @@ export default function PnLHero({ snapshot, loading }: Props) {
     );
   }
 
-  if (!snapshot) {
+  if (snapshots.length === 0) {
     return (
       <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-6">
         <p className="text-sm text-zinc-500">
@@ -45,8 +46,11 @@ export default function PnLHero({ snapshot, loading }: Props) {
     );
   }
 
-  const pnl          = Number(snapshot.tracker_pnl);
-  const trackerValue = Number(snapshot.tracker_value);
+  const first        = snapshots[0];
+  const latest       = snapshots.at(-1)!;
+  const pnl          = Number(latest.tracker_pnl) - Number(first.tracker_pnl);
+  const trackerValue = Number(latest.tracker_value);
+  const base         = Number(first.tracker_value);
   const isPositive   = pnl >= 0;
   const color        = isPositive ? 'text-emerald-400' : 'text-red-400';
   const border       = isPositive ? 'border-emerald-900/50' : 'border-red-900/50';
@@ -54,27 +58,22 @@ export default function PnLHero({ snapshot, loading }: Props) {
 
   return (
     <div className={`rounded-xl border ${border} ${bg} p-6`}>
-      <p className="text-xs font-medium uppercase tracking-widest text-zinc-500 mb-1">
+      <p className="text-sm font-medium uppercase tracking-widest text-zinc-500 mb-1">
         Net P&amp;L
       </p>
 
       <div className="flex items-baseline gap-3 flex-wrap">
-        <span className={`text-5xl font-bold tabular-nums ${color}`}>
+        <span className={`text-3xl md:text-5xl font-bold tabular-nums ${color}`}>
           {fmt(pnl)}
         </span>
         <span className={`text-xl font-semibold ${color}`}>
-          {fmtPct(pnl, INITIAL_INVESTMENT)}
+          {fmtPct(pnl, base)}
         </span>
       </div>
 
       <div className="mt-4 flex flex-wrap gap-6">
-        <Stat label="Invested" value={fmt(INITIAL_INVESTMENT)} />
-        <Stat label="Est. Value" value={fmt(trackerValue)} />
-        <Stat
-          label="Profile Value"
-          value={fmt(Number(snapshot.profile_value))}
-          sub="full portfolio"
-        />
+        <Stat label="Starting Balance" value={fmt(INITIAL_INVESTMENT)} />
+        <Stat label="Current Balance" value={fmt(trackerValue)} />
       </div>
     </div>
   );
@@ -83,17 +82,14 @@ export default function PnLHero({ snapshot, loading }: Props) {
 function Stat({
   label,
   value,
-  sub,
 }: {
   label: string;
   value: string;
-  sub?: string;
 }) {
   return (
     <div>
-      <p className="text-xs text-zinc-500">{label}</p>
-      <p className="text-base font-semibold text-zinc-200 tabular-nums">{value}</p>
-      {sub && <p className="text-xs text-zinc-600">{sub}</p>}
+      <p className="text-sm text-zinc-500">{label}</p>
+      <p className="text-lg font-semibold text-zinc-200 tabular-nums">{value}</p>
     </div>
   );
 }

@@ -18,6 +18,12 @@ html, body {
 ::-webkit-scrollbar-track { background: var(--card); }
 ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 2px; }
 
+/* Mobile readability */
+@media (max-width: 640px) {
+  html { font-size: 17px; }
+  button { min-height: 44px; }
+}
+
 /* Recharts tooltip override */
 .recharts-tooltip-wrapper .recharts-default-tooltip {
   background: #1c1c1f !important;

@@ -6,10 +6,10 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'doug_plean_tracker',
-  description: 'Live P&L tracker — $17k proportional stake in @0x8dxd\'s Polymarket portfolio.',
+  description: 'Paper-trading tracker for Polymarket predictions.',
   openGraph: {
     title: 'doug_plean_tracker',
-    description: 'Live P&L tracker for a proportional stake in @0x8dxd\'s Polymarket portfolio.',
+    description: 'Paper-trading tracker for Polymarket predictions.',
   },
 };
 
