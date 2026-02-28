@@ -23,6 +23,39 @@ Requires `.env.local` with:
 
 A **paper-trading tracker** ("Doug") that copy-trades predictions from 4 Polymarket profiles, matching the source profile's wager amount capped at $100. Starting balance: $17,544.83. Historical P&L seeded from summary.csv (Jan 19 – Feb 28 2026, 41 daily snapshots). Also retains the original @0x8dxd proportional stake tracker in the background data pipeline.
 
+## Current State (as of Feb 28 2026)
+
+- **Dashboard is LIVE** at `polymarket-tracker-roan.vercel.app`
+- **793 trades** copied with matched sizing ($0.03–$100, avg $48.49)
+- **694 resolved**, **~99 pending** (resolution checker runs every 30 min)
+- **Current Balance**: ~$51,196 | **Net P&L**: ~$33,651 | **Starting**: $17,544.83
+- **Snapshots**: 41 historical daily (Jan 19–Feb 28) + minute-level going forward
+- All 4 cron jobs running normally (activity sync, trade copier, resolution checker)
+- Edge functions: `multi-profile-activity-sync` (v1), `doug-trade-copier` (v3), `doug-resolution-checker` (v1)
+
+### How P&L Updates Flow
+
+```
+1. Resolution checker (*/30 min) detects closed market via CLOB API
+   → writes resolution_pnl to pt_trades_doug
+2. Trade copier (* min) reads SUM(resolution_pnl)
+   → tracker_value = 51098.17 + resolved_pnl
+   → inserts new snapshot into pt_doug_snapshots
+3. Frontend polls (every 60s)
+   → fetches latest snapshot
+   → PnLHero displays updated Net P&L and Current Balance
+```
+
+Max lag from resolution to display: ~32 minutes (30 min checker + 1 min copier + 1 min poll).
+
+### What's NOT Done / Future Work
+
+- `pt_trades_vincent` and `pt_trades_juju` tables exist but have no copier edge functions
+- No alerting if edge functions error out silently
+- `MaintenancePage.tsx` still exists in repo (unused, can be deleted)
+- `docs/` and `preview-maintenance.html` are untracked leftover files (can be deleted)
+- Resolution checker processes all pending trades sequentially — could be slow if hundreds accumulate (but handles 793 in one pass today)
+
 ## Full System Architecture
 
 The dashboard (this repo) and the data pipeline (Supabase edge functions) are fully decoupled — they share only the database.
@@ -40,8 +73,7 @@ Edge Function: multi-profile-activity-sync   Edge Function: doug-resolution-chec
         ▼                                       │
 Edge Function: doug-trade-copier ◄──────────────┘
   → Copies new BUY trades from 4 source
-    tables → pt_trades_doug ($20/$30 by event)
-  → Skips 3rd+ trade per event slug
+    tables → pt_trades_doug (matched wager, max $100)
   → Inserts snapshot into pt_doug_snapshots
         │
         │  direct Postgres writes
@@ -54,7 +86,7 @@ Supabase Postgres — schema: profile_tracker
   ├── pt_activity_cc50   (483+)     — source profile 2 (justdance)
   ├── pt_activity_571c   (82+)      — source profile 3 (dustedfloor)
   ├── pt_activity_80cd   (170+)     — source profile 4
-  ├── pt_trades_doug     (749+)     — Doug paper trades (active)
+  ├── pt_trades_doug     (793+)     — Doug paper trades (active)
   ├── pt_trades_vincent  (0)        — Vincent paper trades (inactive)
   ├── pt_trades_juju     (0)        — Juju paper trades (inactive)
   └── pt_doug_snapshots  (growing)  — Doug P&L time-series
@@ -71,8 +103,10 @@ Public Views (read by supabase-js in browser)
         ▼
 Next.js 14 Dashboard (this repo, deployed on Vercel)
   Dashboard.tsx → polls every 60s + on tab focus
-  ├── PnLHero      — $PnL, %, Starting Balance ($17,544.83), Current Balance
+  ├── PnLHero      — Net P&L, %, Starting Balance ($17,544.83), Current Balance
+  │                  (period-aware: changes with time range selection)
   ├── PnLChart     — Recharts line chart with time range tabs (All/1M/1W/1D)
+  │                  (deduped by day for All/1M/1W; raw minute-level for 1D)
   └── ActivityFeed — Doug trades with outcome + resolution chips (no source badges)
 ```
 
@@ -84,7 +118,7 @@ BASE_BALANCE     = 51098.17  (balance as of Feb 28 2026, after historical seedin
 MAX_WAGER        = 100       (cap on matched wager)
 flat_size        = min(source_usdc_size, 100)  (match source, capped)
 
-shares         = flat_size / entry_price         (e.g. $20 / $0.50 = 40 shares)
+shares         = flat_size / entry_price         (e.g. $50 / $0.50 = 100 shares)
 resolution_pnl = won ? (shares * 1.0) - flat_size : -flat_size
                  (won: shares pay $1 each; lost: $0 payout)
 tracker_value  = BASE_BALANCE + SUM(resolution_pnl WHERE resolved)
@@ -112,7 +146,7 @@ tracker_pnl   = tracker_value - initial_investment
   - `profile-tracker-sync` (Deno, v2) — main profile P&L snapshots + activity sync
   - `multi-profile-activity-sync` (Deno, verify_jwt=false) — syncs activity for f705/cc50/571c/80cd. Fetches limit=200 per wallet, filters TRADE+MERGE, UPSERTs via `sql.unsafe()`
   - `doug-trade-copier` (Deno, v3, verify_jwt=false) — copies BUY trades from 4 source tables into pt_trades_doug. Matches source profile's wager amount capped at $100 (`flat_size = min(source_usdc_size, 100)`). Balance = BASE_BALANCE (51098.17) + resolved_pnl. Inserts P&L snapshot each run.
-  - `doug-resolution-checker` (Deno, verify_jwt=false) — fetches `https://clob.polymarket.com/markets/{condition_id}` for unresolved trades. If `closed=true`, reads `tokens[].winner` to determine outcome. Updates `market_closed`, `winning_outcome`, `resolution_pnl`, `resolved_at`.
+  - `doug-resolution-checker` (Deno, v1, verify_jwt=false) — fetches `https://clob.polymarket.com/markets/{condition_id}` for unresolved trades. If `closed=true`, reads `tokens[].winner` to determine outcome. Updates `market_closed`, `winning_outcome`, `resolution_pnl`, `resolved_at`.
 - **Config row**: wallet `0x63ce...9ba9a`, stake 2.524884%, initial investment $17,000, launch Feb 23 2026
 - **Doug config**: matches source wager capped at $100, $17,544.83 starting balance, $51,098.17 base balance forward, copies from all 4 source profiles (BUY side only)
 - **Historical snapshots**: 41 daily data points seeded from summary.csv (Jan 19 – Feb 28 2026)
@@ -141,10 +175,10 @@ Four additional activity tables track other Polymarket profiles. They share the 
 
 | Table | Purpose | Rows | Status |
 |-------|---------|------|--------|
-| `pt_trades_doug` | Paper trades copied from all 4 source profiles | 780+ | Active — synced every minute |
+| `pt_trades_doug` | Paper trades copied from all 4 source profiles | 793+ | Active — synced every minute |
 | `pt_trades_vincent` | Reserved for Vincent paper trades | 0 | Inactive — table created, no copier |
 | `pt_trades_juju` | Reserved for Juju paper trades | 0 | Inactive — table created, no copier |
-| `pt_doug_snapshots` | Doug P&L time-series (one row per minute) | growing | Active — written by trade copier |
+| `pt_doug_snapshots` | Doug P&L time-series (41 daily + minute-level) | growing | Active — written by trade copier |
 
 - **Trade table schema** (`pt_trades_doug`): `id`, `condition_id` (UNIQUE), `source_table`, `title`, `slug`, `outcome`, `side`, `icon_url`, `source_usdc_size`, `flat_size` (min of source_usdc_size, $100), `entry_price`, `shares`, `market_closed`, `winning_outcome`, `resolution_pnl`, `resolved_at`, `event_timestamp`, `copied_at`, `last_checked_at`
 - **Snapshot schema** (`pt_doug_snapshots`): `id`, `captured_at`, `profile_value`, `tracker_value`, `tracker_pnl` — matches `Snapshot` TypeScript interface
@@ -166,10 +200,17 @@ Four additional activity tables track other Polymarket profiles. They share the 
 - **Types** are in `lib/types.ts`: `Snapshot` (time-series P&L), `DougTrade` (paper trades with resolution), `Activity` (legacy), `TrackerState`.
 - **Data fetching** in `lib/supabase.ts`: `fetchDougSnapshots()` and `fetchDougTrades()` — cast to `Snapshot[]` and `DougTrade[]`.
 - **Dashboard title**: `doug_tracker`
-- **PnLHero**: Shows Net P&L (large, color-coded), % Return, Starting Balance ($17,544.83), Current Balance. `INITIAL_INVESTMENT = 17_544.83`.
-- **PnLChart**: Time range tabs (All/1M/1W/1D) filter snapshots before rendering. Historical data from Jan 19 shows full journey.
+- **PnLHero**: Shows Net P&L (large, color-coded), % Return, Starting Balance ($17,544.83), Current Balance. `INITIAL_INVESTMENT = 17_544.83`. P&L is period-aware — computed as `latest.tracker_pnl - first.tracker_pnl` from filtered snapshots, so it changes when time range tabs are clicked.
+- **PnLChart**: Time range tabs (All/1M/1W/1D) filter snapshots before rendering. All/1M/1W deduplicate by day (one point per day). 1D shows raw minute-level snapshots for intraday visibility. Historical data from Jan 19 shows full journey.
 - **ActivityFeed**: Shows outcome chip (YES/NO), resolution chip (PENDING/WON/LOST with amounts), matched wager amount (up to $100), relative timestamp. No source badges or entry prices.
 - **Styling**: Tailwind CSS with dark theme (zinc palette). CSS variables for `--bg`, `--card`, `--border` in `globals.css`. Mobile-optimized with 17px base font and 44px touch targets on small screens.
 - **Images**: `next.config.mjs` allows remote images from `polymarket-upload.s3.us-east-2.amazonaws.com`, `images.ctfassets.net`, `*.polymarket.com`.
 - **Constants**: `INITIAL_INVESTMENT = 17_544.83` in PnLHero, `POLL_MS = 60_000` in Dashboard.
 - **Path alias**: `@/*` maps to project root.
+
+## Key Operational Notes
+
+- **After truncating `pt_trades_doug`**: The trade copier cron re-copies all trades from source tables within 1 minute. You must also manually invoke the resolution checker (`curl https://cxvntzszdkyggjjenefn.supabase.co/functions/v1/doug-resolution-checker`) to re-resolve trades, otherwise they all show as PENDING.
+- **After deploying a new trade copier**: Truncate trades, wait for re-copy, then invoke resolution checker.
+- **Historical snapshots**: The 41 daily snapshots from summary.csv are the foundation of the "All" chart view. New minute-level snapshots accumulate on top. The deduplication logic ensures only one point per day for the long-range views.
+- **BASE_BALANCE (51098.17)** is hardcoded in the edge function — it represents the account value as of the last historical data point (Feb 28 2026). All future P&L is relative to this anchor.
