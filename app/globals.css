@@ -68,6 +68,10 @@ html, body {
 .bolt-3 { font-size: 0.95em; animation: bolt-3-seq 1.6s steps(1) infinite; }
 
 /* Donut arc animations */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
 @keyframes arc-color-shift {
   0%, 100% { stop-color: #eab308; }
   50%       { stop-color: #22c55e; }
@@ -86,11 +90,32 @@ html, body {
 .arc-stop-end {
   animation: arc-color-shift 1.8s ease-in-out infinite;
 }
-.arc-ring {
-  animation: arc-pulse 2.5s ease-in-out infinite;
+/* Combined spin + pulse — avoids conflict with Tailwind's animate-spin */
+.arc-spin-pulse {
+  animation: spin 1.8s linear infinite, arc-pulse 2.5s ease-in-out infinite;
 }
 .arc-breathe {
   animation: arc-thickness 1.8s ease-in-out infinite;
+}
+
+/* Full-page radial pulse */
+@keyframes page-pulse {
+  0%, 100% { opacity: 0; }
+  50%       { opacity: 1; }
+}
+.page-pulse {
+  position: fixed;
+  inset: -40px;
+  pointer-events: none;
+  z-index: 999;
+  background: radial-gradient(ellipse at center,
+    rgba(255,255,255,0.18) 0%,
+    rgba(255,255,255,0.12) 25%,
+    rgba(255,255,255,0.05) 55%,
+    rgba(255,255,255,0)    80%
+  );
+  filter: blur(32px);
+  animation: page-pulse 5.6s ease-in-out infinite;
 }
 
 /* Recharts tooltip override */

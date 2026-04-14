@@ -3,6 +3,7 @@ import WalletSyncBar from '@/components/WalletSyncBar';
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-[var(--bg)] text-zinc-100">
+      <div className="page-pulse" />
       <div className="relative h-40 w-40">
         {/* Track ring */}
         <svg className="absolute inset-0 h-full w-full" viewBox="0 0 100 100">
@@ -18,8 +19,7 @@ export default function Home() {
 
         {/* Spinning + pulsing arc */}
         <svg
-          className="absolute inset-0 h-full w-full arc-ring animate-spin"
-          style={{ animationDuration: '1.8s' }}
+          className="absolute inset-0 h-full w-full arc-spin-pulse"
           viewBox="0 0 100 100"
         >
           <defs>
