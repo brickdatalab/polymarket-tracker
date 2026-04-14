@@ -24,6 +24,75 @@ html, body {
   button { min-height: 44px; }
 }
 
+/* Progress bar shimmer */
+@keyframes shimmer {
+  0%   { transform: translateX(-200%); }
+  100% { transform: translateX(500%); }
+}
+.bar-shimmer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 35%;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.5) 50%, transparent 100%);
+  animation: shimmer 2.8s ease-in-out infinite;
+}
+
+/* Lightning bolt sequence: small → medium → large → clear */
+@keyframes bolt-1-seq {
+  0%     { opacity: 1; }
+  74.9%  { opacity: 1; }
+  75%    { opacity: 0; }
+  100%   { opacity: 0; }
+}
+@keyframes bolt-2-seq {
+  0%     { opacity: 0; }
+  24.9%  { opacity: 0; }
+  25%    { opacity: 1; }
+  74.9%  { opacity: 1; }
+  75%    { opacity: 0; }
+  100%   { opacity: 0; }
+}
+@keyframes bolt-3-seq {
+  0%     { opacity: 0; }
+  49.9%  { opacity: 0; }
+  50%    { opacity: 1; }
+  74.9%  { opacity: 1; }
+  75%    { opacity: 0; }
+  100%   { opacity: 0; }
+}
+.bolt { display: inline-block; }
+.bolt-1 { font-size: 0.55em; animation: bolt-1-seq 1.6s steps(1) infinite; }
+.bolt-2 { font-size: 0.75em; animation: bolt-2-seq 1.6s steps(1) infinite; }
+.bolt-3 { font-size: 0.95em; animation: bolt-3-seq 1.6s steps(1) infinite; }
+
+/* Donut arc animations */
+@keyframes arc-color-shift {
+  0%, 100% { stop-color: #eab308; }
+  50%       { stop-color: #22c55e; }
+}
+@keyframes arc-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
+}
+@keyframes arc-thickness {
+  0%, 100% { stroke-width: 8; }
+  50%       { stroke-width: 16; }
+}
+.arc-stop-start {
+  animation: arc-color-shift 1.8s ease-in-out infinite;
+}
+.arc-stop-end {
+  animation: arc-color-shift 1.8s ease-in-out infinite;
+}
+.arc-ring {
+  animation: arc-pulse 2.5s ease-in-out infinite;
+}
+.arc-breathe {
+  animation: arc-thickness 1.8s ease-in-out infinite;
+}
+
 /* Recharts tooltip override */
 .recharts-tooltip-wrapper .recharts-default-tooltip {
   background: #1c1c1f !important;
