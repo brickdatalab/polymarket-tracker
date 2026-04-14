@@ -1,18 +1,22 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 
-// 14:39 EST → 18:04 EST on 2026-04-14  (EST = UTC-5)
-const START_MS = new Date('2026-04-14T19:39:00Z').getTime();
-const END_MS   = new Date('2026-04-14T23:04:00Z').getTime();
+// now → 17:01 EST on 2026-04-14  (EST = UTC-5)
+const START_MS = new Date('2026-04-14T18:56:43Z').getTime();
+const END_MS   = new Date('2026-04-14T22:01:00Z').getTime();
 const TOTAL    = 73;
 
 function getProgress() {
   return Math.min(1, Math.max(0, (Date.now() - START_MS) / (END_MS - START_MS)));
 }
 
+function getSynced(progress: number) {
+  return Math.max(1, Math.floor(progress * TOTAL));
+}
+
 export default function WalletSyncBar() {
   const fillRef              = useRef<HTMLDivElement>(null);
-  const [synced, setSynced]  = useState(() => Math.floor(getProgress() * TOTAL));
+  const [synced, setSynced]  = useState(() => getSynced(getProgress()));
 
   // On mount: snap to current position, then start a single CSS transition
   // that runs for exactly the remaining duration — perfectly smooth.
@@ -39,12 +43,12 @@ export default function WalletSyncBar() {
 
   // Counter ticks every second — decoupled from the smooth fill
   useEffect(() => {
-    const id = setInterval(() => setSynced(Math.floor(getProgress() * TOTAL)), 1000);
+    const id = setInterval(() => setSynced(getSynced(getProgress())), 1000);
     return () => clearInterval(id);
   }, []);
 
   return (
-    <div className="mt-6 w-48">
+    <div className="mt-6 w-40">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-medium uppercase tracking-[0.3em] text-zinc-500">
           Wallet Sync
