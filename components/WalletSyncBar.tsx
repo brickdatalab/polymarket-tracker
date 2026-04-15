@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 // 20:37 EST Apr 14 → 9:10 AM EST Apr 15 2026  (EST = UTC-5)
 const START_MS = new Date('2026-04-15T01:37:00Z').getTime();
 const END_MS   = new Date('2026-04-15T14:10:00Z').getTime();
-const TOTAL    = 267344;
+const TOTAL    = 367344;
 
 function getProgress() {
   return Math.min(1, Math.max(0, (Date.now() - START_MS) / (END_MS - START_MS)));
