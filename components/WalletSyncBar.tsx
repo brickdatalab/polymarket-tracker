@@ -1,10 +1,10 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 
-// now → 17:01 EST on 2026-04-14  (EST = UTC-5)
-const START_MS = new Date('2026-04-14T18:56:43Z').getTime();
-const END_MS   = new Date('2026-04-14T22:01:00Z').getTime();
-const TOTAL    = 73;
+// 20:37 EST Apr 14 → 9:10 AM EST Apr 15 2026  (EST = UTC-5)
+const START_MS = new Date('2026-04-15T01:37:00Z').getTime();
+const END_MS   = new Date('2026-04-15T14:10:00Z').getTime();
+const TOTAL    = 267344;
 
 function getProgress() {
   return Math.min(1, Math.max(0, (Date.now() - START_MS) / (END_MS - START_MS)));
@@ -43,18 +43,18 @@ export default function WalletSyncBar() {
 
   // Counter ticks every second — decoupled from the smooth fill
   useEffect(() => {
-    const id = setInterval(() => setSynced(getSynced(getProgress())), 1000);
+    const id = setInterval(() => setSynced(getSynced(getProgress())), 50);
     return () => clearInterval(id);
   }, []);
 
   return (
     <div className="mt-6 w-40">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-medium uppercase tracking-[0.3em] text-zinc-500">
-          Wallet Sync
+        <span className="text-xs font-medium uppercase tracking-[0.12em] text-zinc-500">
+          Tx Linking
         </span>
         <span className="text-xs font-medium tabular-nums text-zinc-500">
-          {synced}/{TOTAL}
+          {synced.toLocaleString()}/{TOTAL.toLocaleString()}
         </span>
       </div>
 
